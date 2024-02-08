@@ -1,0 +1,24 @@
+version : '3.8'
+
+services:
+  middleware:
+    image: middleware-image:latest
+    build:
+        context: ./middleware
+        dockerfile: Dockerfile
+        shm_size: '200gb'
+    shm_size: '200gb'
+    container_name: middleware
+    user: root
+    volumes:
+        - ./middleware:/middleware_container
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    entrypoint: ["/usr/bin/tail", "-f", "/dev/null"]
+    ports:
+        - "8001:8001"

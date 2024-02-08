@@ -1,0 +1,11 @@
+[flake8]
+exclude =
+    __pycache__
+    env
+    .env
+    ./env
+    env/
+    .env/
+ignore =
+    E501
+    
