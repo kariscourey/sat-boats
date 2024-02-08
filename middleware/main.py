@@ -94,8 +94,5 @@ async def get_ship_predictions(ship_mmsi: str):
 
     return ListPredictionOut(predictions=predictions)
 
-    return
-
-
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, log_level="info", reload=False)
