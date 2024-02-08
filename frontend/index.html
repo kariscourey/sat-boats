@@ -58,10 +58,8 @@
         import { Raycaster, Vector2 } from 'three';
 
         let camera, scene, renderer, globe, controls, raycaster, mouse;
-        let shipMeshes = [];
         let shipData;
-        let shipGroup = new THREE.Object3D();
-
+        let shipGroup = new THREE.Group();
 
         init();
         animate();
@@ -126,49 +124,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // function onWindowClick(event) {
-        //     event.preventDefault();
-
-        //     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        //     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-        //     raycaster.setFromCamera(mouse, camera);
-
-        //     const intersects = raycaster.intersectObject(shipGroup.children);
-
-        //     if (intersects.length > 0) {
-        //         const selectedShip = intersects[0].object;
-        //         const index = shipGroup.children.indexOf(selectedShip);
-
-        //         if (index !== -1) {
-        //             const shipDataEntry = shipData.predictions[index];
-        //             const latLon = convertToPosition(parseFloat(shipDataEntry.lat), parseFloat(shipDataEntry.lon));
-
-        //             showInfoBox(event.clientX, event.clientY, {
-        //                 lat: latLon.x.toFixed(2),
-        //                 lon: latLon.y.toFixed(2),
-        //                 vesselName: shipDataEntry.vessel_name,
-        //             });
-
-        //         }
-
-                
-        //     } else {
-        //         hideInfoBox(); // Optionally, hide the info box if it's visible
-        //     }
-
-
-        //     // const intersects = raycaster.intersectObject(globe);
-
-        //     // if (intersects.length > 0) {
-        //     //     const point = intersects[0].point;
-        //     //     const latLon = convertToLatLon(point);
-        //     //     showInfoBox(event.clientX, event.clientY, latLon);
-        //     // } else {
-        //     //     hideInfoBox(); // Optionally, hide the info box if it's visible
-        //     // }
-        // }
-
         function onWindowClick(event) {
             event.preventDefault();
 
@@ -185,11 +140,11 @@
 
                 if (index !== -1) {
                     const shipDataEntry = shipData.predictions[index];
-                    const latLon = convertToPosition(parseFloat(shipDataEntry.lat), parseFloat(shipDataEntry.lon));
+                    const latLon = convertToLatLon(selectedShip.position);
 
                     showInfoBox(event.clientX, event.clientY, {
-                        lat: latLon.x.toFixed(2),
-                        lon: latLon.y.toFixed(2),
+                        lat: latLon.lat,
+                        lon: latLon.lon,
                         vesselName: shipDataEntry.vessel_name,
                     });
                 }
@@ -207,9 +162,9 @@
 
         function createShipMeshes() {
             const shipGeometry = new THREE.BoxGeometry(0.04, 0.04, 0.04);
-            const shipMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
+            const shipMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
-            return shipData.predictions.forEach(prediction => {
+            shipData.predictions.forEach(prediction => {
                 const lat = parseFloat(prediction.lat);
                 const lon = parseFloat(prediction.lon);
                 const position = convertToPosition(lat, lon);
@@ -219,7 +174,6 @@
 
                 shipGroup.add(shipMesh);
             });
-
         }
 
         function convertToLatLon(position) {
@@ -228,7 +182,10 @@
             const theta = Math.atan2(position.z, position.x);
             const lat = 90 - (phi * 180) / Math.PI;
             const lon = (theta * 180) / Math.PI;
-            return { lat: lat.toFixed(2), lon: lon.toFixed(2) };
+
+            const correctedLon = lon > 180 ? lon - 360 : lon;
+
+            return { lat: lat.toFixed(2), lon: correctedLon.toFixed(2) };
         }
 
         function convertToPosition(lat, lon) {
@@ -268,19 +225,16 @@
             return shipData;
         }
 
-
         async function calculateShipPositions() {
             shipData = await loadShipData();
 
-            shipMeshes.forEach((shipMesh, index) => {
+            shipGroup.children.forEach((shipMesh, index) => {
                 const lat = parseFloat(shipData.predictions[index].lat);
                 const lon = parseFloat(shipData.predictions[index].lon);
 
                 const position = convertToPosition(lat, lon);
 
                 shipMesh.position.copy(position);
-
-
             });
         }
 
@@ -288,9 +242,6 @@
             calculateShipPositions();
             setInterval(calculateShipPositions, 3000);
         });
-
-        // TODO overlay ships
-        // TODO onclick, show infobox with most probable AND heatmap (positions)
 
     </script>
 
