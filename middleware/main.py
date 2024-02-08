@@ -1,4 +1,5 @@
 import uvicorn
+import pandas as pd
 
 from datetime import datetime, timezone
 from fastapi import FastAPI
@@ -8,78 +9,47 @@ from pydantic import BaseModel
 
 # Model load --------------------------------------------------------------------
 
-model_output = [
-    {
-        "vessel_name": "OOCL Malaysia",
-        "mmsi": "477220100",
-        "predicted_locations": [
-            {
-                "base_date_time": datetime(2024, 2, 8, 12, 30, 0).astimezone(
-                    timezone.utc
-                ),
-                "coordinates": [
-                    {
-                        "lat": 21.2775,
-                        "lon": -157.8226,
-                        "probability": 0.91,
-                    },
-                    {
-                        "lat": 21.1775,
-                        "lon": -157.7226,
-                        "probability": 0.86,
-                    },
-                    {
-                        "lat": 21.3775,
-                        "lon": -157.3226,
-                        "probability": 0.61,
-                    },
-                ],
-            },
-        ],
-    },
-    {
-        "vessel_name": "BOW Canada",
-        "mmsi": "819101222",
-        "predicted_locations": [
-            {
-                "base_date_time": datetime(2024, 3, 10, 11, 12, 0).astimezone(
-                    timezone.utc
-                ),
-                "coordinates": [
-                    {
-                        "lat": 23.1001,
-                        "lon": -159.2000,
-                        "probability": 0.53,
-                    },
-                    {
-                        "lat": 23.9019,
-                        "lon": -159.1201,
-                        "probability": 0.31,
-                    },
-                    {
-                        "lat": 21.9995,
-                        "lon": -156.4387,
-                        "probability": 0.12,
-                    },
-                ],
-            },
-        ],
-    },
-]
+data = {
+    "VesselName": [
+        "OOCL Malaysia",
+        "BOW Canada",
+        "BOW Canada",
+        "BOW Canada",
+    ],
+    "MMSI": ["12309821", "23157653", "23157653", "23157653"],
+    "BaseDateTime": [
+        datetime(2024, 2, 8, 12, 30, 0).astimezone(timezone.utc),
+        datetime(2024, 2, 8, 12, 30, 0).astimezone(timezone.utc),
+        datetime(2024, 2, 8, 12, 30, 0).astimezone(timezone.utc),
+        datetime(2024, 2, 6, 12, 30, 0).astimezone(timezone.utc),
+    ],
+    "LAT": ["20.12321", "21.97984", "23.19092", "21.97984"],
+    "LON": ["158.9781", "159.97984", "160.23101", "158.9781"],
+    "Probability": [0.871, 0.7612, 0.9999, 0.12908],
+}
+
+df = pd.DataFrame(data)
 
 
 # FastAPI app configs -----------------------------------------------------------
 
 
 # define pydantic models
-class ShipOut(BaseModel):
-
-    ship: dict
 
 
-class ShipsOut(BaseModel):
+class PredictionOut(BaseModel):
 
-    ships: list
+    vessel_name: str
+    mmsi: str
+    base_date_time: datetime
+    lat: float
+    lon: float
+    probability: float
+
+
+class ListPredictionOut(BaseModel):
+
+    predictions: list
 
 
 # instantiate fastapi app
@@ -99,15 +69,32 @@ app.add_middleware(
 
 
 @app.get("/api/ships/{ship_mmsi}/")
-def get_ship(ship_mmsi: str) -> ShipOut:
-    return ShipOut(ship=model_output[0])
+async def get_ship_predictions(ship_mmsi: str):
 
+    # get specific ship
+    filt_df = df[df["MMSI"] == ship_mmsi]
 
-@app.get("/ships")
-def get_ships() -> ShipsOut:
+    # get most recent basedatetime (one data point), filter to only get those probabilities
+    most_recent = filt_df["BaseDateTime"].max()
+    filt_df = filt_df[filt_df["BaseDateTime"] == most_recent]
 
-    # return
-    return ShipsOut(ships=model_output)
+    # convert to outputable format
+    predictions = []
+
+    for _, row in filt_df.iterrows():
+        prediction = PredictionOut(
+            vessel_name=row["VesselName"],
+            mmsi=row["MMSI"],
+            base_date_time=row["BaseDateTime"],
+            lat=row["LAT"],
+            lon=row["LON"],
+            probability=row["Probability"],
+        )
+        predictions.append(prediction)
+
+    return ListPredictionOut(predictions=predictions)
+
+    return
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@
 
 FROM python:3.10-bullseye
 RUN python -m pip install --upgrade pip
-WORKDIR /app
+WORKDIR /middleware_container
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
