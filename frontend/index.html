@@ -198,7 +198,7 @@
         // TODO load sample ship data
         async function loadShipData() {
             console.log("hello");
-            const shipResponse = await fetch("http://0.0.0.0:8001/ships");
+            const shipResponse = await fetch("http://0.0.0.0:8001/api/ships");
             console.log("done");
             const shipData = await shipResponse.json();
             console.log("again");
@@ -215,7 +215,7 @@
 
         loadShipData().then(() => {
             calculateShipPositions();
-            setInterval(calculateShipPositions, 1000);
+            setInterval(calculateShipPositions, 3000);
         });
 
         // TODO overlay ships
