@@ -27,52 +27,6 @@
             z-index: 1;
         }
 
-        #leftbuttonContainer {
-            position: absolute;
-            z-index: 10;
-            top: 20%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            height: 60%;
-            padding: 10px;
-            /* spacing inside the container */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            /* subtle shadow for depth */
-            left: 10px;
-            padding-right: 100px;
-            background-color: rgba(255, 0, 0, 0.2);
-        }
-
-        .buttonWrapper {
-            display: flex;
-            justify-content: center;
-            /* Center button horizontally */
-            align-items: center;
-            /* Center button vertically */
-            width: 100%;
-            /* Full width of the container */
-            padding: 5px 0;
-            /* Adjust spacing around each button */
-            position: relative;
-            /* Relative positioning */
-        }
-
-        .button {
-            margin: 5px 0;
-            /* spacing between buttons */
-            background-color: transparent;
-            /* semi-transparent buttons */
-            border: none;
-            border-radius: 10px;
-            /* rounded button corners */
-            padding: 10px 20px;
-            color: white;
-            /* text color */
-            cursor: pointer;
-            /* mouse cursor on hover */
-        }
-
         #infoBox {
             position: absolute;
             padding: 10px;
@@ -90,11 +44,6 @@
 
 <body>
     <div id="infoBox"></div> <!-- Add this line for the info box -->
-    <div id="leftbuttonContainer">
-        <button id="globe" class="buttonWrapper button" style="margin-left: 30%;">Globe View</button>
-        <button id="terrain" class="buttonWrapper button" style="margin-left: 10%;">Terrain View</button>
-        <button id="resetView" class="buttonWrapper button" style="margin-left: 30%;">Reset View</button>
-    </div>
     <script type="importmap">
         {
             "imports": {
@@ -162,8 +111,6 @@
 
             window.addEventListener('resize', onWindowResize);
 
-            document.getElementById('globe').addEventListener('click', addGlobe);
-
         }
 
         function onWindowResize() {
@@ -198,8 +145,6 @@
             }
         }
 
-
-
         function convertToLatLon(position) {
             const radius = globe.geometry.parameters.radius;
             const phi = Math.acos(position.y / radius);
@@ -214,7 +159,7 @@
             infoBox.style.display = 'block';
             infoBox.style.left = `${x}px`;
             infoBox.style.top = `${y}px`;
-            infoBox.innerHTML = `Terrain: Earth<br>Latitude: ${latLon.lat}°<br>Longitude: ${latLon.lon}°`;
+            infoBox.innerHTML = `Vessel: OOCL May<br>Latitude: ${latLon.lat}°<br>Longitude: ${latLon.lon}°`;
         }
 
         function animate() {
@@ -227,52 +172,54 @@
             renderer.render(scene, camera);
         }
 
-        function addGlobe() {
-            // Remove the terrain if it's in the scene
-            const terrain = scene.getObjectByName('terrain');
-            if (terrain) {
-                scene.remove(terrain);
-                terrain.geometry.dispose();
-                terrain.material.dispose();
-            }
+        // // Assuming you have a function to fetch and parse the CSV
+        // async function loadSatelliteData() {
+        //     const response = await fetch('satellites.csv');
+        //     const data = await response.text();
+        //     // Parse CSV data here and extract TLEs
+        // }
 
-            // Check if the globe already exists before creating a new one
-            if (!globe) {
-                // Create SphereGeometry for the globe
-                const geometry = new THREE.SphereGeometry(5, 32, 32);
-                const textureLoader = new THREE.TextureLoader();
-                const earthTexture = textureLoader.load('img/earth-blue-marble.jpg');
-                const material = new THREE.MeshBasicMaterial({ map: earthTexture, transparent: true });
-                globe = new THREE.Mesh(geometry, material);
-            }
+        // function propagateSatellites() {
+        //     // For each satellite, use satellite.js to calculate position
+        //     const satrec = satellite.twoline2satrec(tleLine1, tleLine2); // TLE lines
+        //     const positionAndVelocity = satellite.propagate(satrec, new Date());
+        //     const positionEci = positionAndVelocity.position;
+        //     // Convert ECI to geographic coordinates (lat/long) and update the globe
+        // }
 
-            // Add the globe to the scene
-            scene.add(globe);
+        // // Call these functions as needed
+        // loadSatelliteData().then(() => {
+        //     // Initialize satellite propagation and rendering
+        //     propagateSatellites();
+        //     // Set an interval to update positions regularly
+        //     setInterval(propagateSatellites, 1000); // Update every second
+        // });
+
+        // TODO load sample ship data
+        async function loadShipData() {
+            console.log("hello");
+            const shipResponse = await fetch("http://0.0.0.0:8001/ships");
+            console.log("done");
+            const shipData = await shipResponse.json();
+            console.log("again");
+            return shipData;
         }
 
 
-        // Assuming you have a function to fetch and parse the CSV
-        async function loadSatelliteData() {
-            const response = await fetch('satellites.csv');
-            const data = await response.text();
-            // Parse CSV data here and extract TLEs
+        // TODO calculate position of ships
+        async function calculateShipPositions() {
+            console.log("Calculating...");
+            const shipData = await loadShipData();
+            console.log("Ship data", shipData);
         }
 
-        function propagateSatellites() {
-            // For each satellite, use satellite.js to calculate position
-            const satrec = satellite.twoline2satrec(tleLine1, tleLine2); // TLE lines
-            const positionAndVelocity = satellite.propagate(satrec, new Date());
-            const positionEci = positionAndVelocity.position;
-            // Convert ECI to geographic coordinates (lat/long) and update the globe
-        }
-
-        // Call these functions as needed
-        loadSatelliteData().then(() => {
-            // Initialize satellite propagation and rendering
-            propagateSatellites();
-            // Set an interval to update positions regularly
-            setInterval(propagateSatellites, 1000); // Update every second
+        loadShipData().then(() => {
+            calculateShipPositions();
+            setInterval(calculateShipPositions, 1000);
         });
+
+        // TODO overlay ships
+        // TODO onclick, show infobox with most probable AND heatmap (positions)
 
     </script>
 

@@ -12,13 +12,14 @@ services:
     user: root
     volumes:
         - ./middleware:/middleware_container
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-    entrypoint: ["/usr/bin/tail", "-f", "/dev/null"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # entrypoint: ["/usr/bin/tail", "-f", "/dev/null"]
+    entrypoint: 'watchmedo auto-restart --directory=/middleware_container --pattern=*.py --recursive python main.py'
     ports:
         - "8001:8001"
