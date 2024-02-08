@@ -20,7 +20,7 @@ data = {
     "BaseDateTime": [
         datetime(2024, 2, 8, 12, 30, 0).astimezone(timezone.utc),
         datetime(2024, 2, 8, 12, 30, 0).astimezone(timezone.utc),
-        datetime(2024, 2, 8, 12, 30, 0).astimezone(timezone.utc),
+        datetime(2024, 2, 7, 12, 30, 0).astimezone(timezone.utc),
         datetime(2024, 2, 6, 12, 30, 0).astimezone(timezone.utc),
     ],
     "LAT": ["20.12321", "21.97984", "23.19092", "21.97984"],
@@ -37,17 +37,12 @@ df = pd.DataFrame(data)
 # define pydantic models
 
 
-class PredictionOut(BaseModel):
+class ShipOut(BaseModel):
 
-    vessel_name: str
-    mmsi: str
-    base_date_time: datetime
-    lat: float
-    lon: float
-    probability: float
+    predictions: list
 
 
-class ListPredictionOut(BaseModel):
+class ShipsOut(BaseModel):
 
     predictions: list
 
@@ -69,7 +64,7 @@ app.add_middleware(
 
 
 @app.get("/api/ships/{ship_mmsi}/")
-async def get_ship_predictions(ship_mmsi: str):
+async def get_ship(ship_mmsi: str):
 
     # get specific ship
     filt_df = df[df["MMSI"] == ship_mmsi]
@@ -82,17 +77,44 @@ async def get_ship_predictions(ship_mmsi: str):
     predictions = []
 
     for _, row in filt_df.iterrows():
-        prediction = PredictionOut(
-            vessel_name=row["VesselName"],
-            mmsi=row["MMSI"],
-            base_date_time=row["BaseDateTime"],
-            lat=row["LAT"],
-            lon=row["LON"],
-            probability=row["Probability"],
-        )
+        prediction = {
+            "vessel_name": row["VesselName"],
+            "mmsi": row["MMSI"],
+            "base_date_time": row["BaseDateTime"],
+            "lat": row["LAT"],
+            "lon": row["LON"],
+            "probability": row["Probability"],
+        }
         predictions.append(prediction)
 
-    return ListPredictionOut(predictions=predictions)
+    return ShipOut(predictions=predictions)
+
+
+@app.get("/api/ships/")
+async def get_ships():
+
+    # # get unique mmsi (unnecessary?)
+    # mmsis = df["MMSI"].unique()
+
+    # get most recent data point for each MMSI
+    filt_df = df.loc[df.groupby("MMSI")["BaseDateTime"].idxmax()]
+
+    # convert to outputable format
+    predictions = []
+
+    for _, row in filt_df.iterrows():
+        prediction = {
+            "vessel_name": row["VesselName"],
+            "mmsi": row["MMSI"],
+            "base_date_time": row["BaseDateTime"],
+            "lat": row["LAT"],
+            "lon": row["LON"],
+            # "probability": row["Probability"], # don't care about prob here
+        }
+        predictions.append(prediction)
+
+    return ShipsOut(predictions=predictions)
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, log_level="info", reload=False)
