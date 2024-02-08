@@ -124,7 +124,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        function onWindowClick(event) {
+        async function onWindowClick(event) {
             event.preventDefault();
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -139,17 +139,23 @@
                 const index = shipGroup.children.indexOf(selectedShip);
 
                 if (index !== -1) {
-                    const shipDataEntry = shipData.predictions[index];
-                    const latLon = convertToLatLon(selectedShip.position);
+                    const shipMMSI = shipData.predictions[index].mmsi;
 
+                    // Fetch ship probabilities for the selected ship
+                    const probabilitiesResponse = await fetch(`http://0.0.0.0:8001/api/ships/${shipMMSI}`);
+                    const probabilitiesData = await probabilitiesResponse.json();
+
+                    // Display ship information, including probabilities
+                    const latLon = convertToLatLon(selectedShip.position);
                     showInfoBox(event.clientX, event.clientY, {
                         lat: latLon.lat,
                         lon: latLon.lon,
-                        vesselName: shipDataEntry.vessel_name,
+                        vesselName: shipData.predictions[index].vessel_name,
+                        probabilities: probabilitiesData,
                     });
                 }
             } else {
-                hideInfoBox(); // Optionally, hide the info box if it's visible
+                hideInfoBox();
             }
         }
 
